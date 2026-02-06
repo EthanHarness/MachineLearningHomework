@@ -10,7 +10,7 @@ import random
 class ModifiedGradientDescent:
     
     def __init__(self, trainingData, dataLabels, learningRate=.5, iterationCount=100):
-        assert len(trainingData) == len(dataLabels), "Length mismatch!!"
+        assert len(trainingData) == len(dataLabels), "Length mismatch!"
         
         self.dataSetSize = len(trainingData) #m
         self.inputDimensionSize = len(trainingData[0]) #n
