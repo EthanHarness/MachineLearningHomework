@@ -25,7 +25,7 @@ class ModifiedGradientDescent:
          
         self.computeLoss = lambda inData,outData: sum([x*y for x,y in zip(self.paramsForInput, inData)]) + self.paramForConstant - outData
     
-    #Gradient is w*sign(loss) with respect to weights and sign(loss) with respect to bias
+    #Gradient is x*sign(loss) with respect to weights and sign(loss) with respect to bias
     #Then need to sum over all data for total loss
     def lossGradient(self):
         assert len(self.trainingData) == len(self.dataLabels)
@@ -73,164 +73,166 @@ class ModifiedGradientDescent:
         return self.paramsForInput + [self.paramForConstant]
 
 def runUnitTests():
+    changeObservedData = lambda newObserved: (newObserved, len(newObserved[0]), len(newObserved))
     def assertOn1dList(expect, actual, msg):
         for x,y in zip(expect, actual):
             assert x == y, msg
+            
+    def createCustomRegObj(inData, outData, regWeights, regBias):
+        reg = ModifiedGradientDescent(inData, outData)
+        reg.paramsForInput = regWeights
+        reg.paramForConstant = regBias
+        return reg
     
     def testLossComputation():
         #Assume f(a,b) = a + b
-        observedData = [[1,1],[1,2],[2,1],[2,2]]
+        observedData, dims, observedLen = changeObservedData([[1,1],[1,2],[2,1],[2,2]])
         outData = [2,3,3,4]
-        reg = ModifiedGradientDescent(observedData, outData)
         errorMsg = "Loss Computation Failure"
-        createActual = lambda a,b: [reg.computeLoss(x,y) for x,y in zip(a,b)]
+        createActual = lambda model,a,b: [model.computeLoss(x,y) for x,y in zip(a,b)]
         
         #Set model params to all 1's
-        reg.paramsForInput = [1]*reg.inputDimensionSize
-        reg.paramForConstant = 1
-        expected = [1]*len(observedData)
-        actual = createActual(observedData,outData)
+        weights = [1]*dims
+        bias = 1
+        expected = [1]*observedLen
+        actual = createActual(createCustomRegObj(observedData, outData, weights, bias), observedData,outData)
         assertOn1dList(expected, actual, errorMsg)
         
         #Set model paramaters to 1,2,3,... and const to 10
-        reg.paramsForInput = [x for x in range(1,reg.inputDimensionSize+1)]
-        reg.paramForConstant = 10
+        weights = [x for x in range(1,dims+1)]
+        bias = 10
         expected = [11,12,11,12]
-        actual = createActual(observedData, outData)
+        actual = createActual(createCustomRegObj(observedData, outData, weights, bias), observedData, outData)
         assertOn1dList(expected, actual, errorMsg)
         
         #f(x) = x + 2 with all 1's
-        observedData = [[x] for x in range(5)]
+        observedData, dims, observedLen = changeObservedData([[x] for x in range(5)])
         outData = [x+2 for x in range(5)]
-        reg = ModifiedGradientDescent(observedData, outData)
-        reg.paramsForInput = [1]*reg.inputDimensionSize
-        reg.paramForConstant = 1
-        expected = [-1]*len(observedData)
-        actual = createActual(observedData, outData)
+        weights = [1]*dims
+        bias = 1
+        expected = [-1]*observedLen
+        actual = createActual(createCustomRegObj(observedData, outData, weights, bias), observedData, outData)
         assertOn1dList(expected, actual, errorMsg)
         
         #f(x) = x + 2 with 1's for weight and 2 for bias
-        observedData = [[x] for x in range(5)]
+        observedData, dims, observedLen = changeObservedData([[x] for x in range(5)])
         outData = [x+2 for x in range(5)]
-        reg.paramsForInput = [1]*reg.inputDimensionSize
-        reg.paramForConstant = 2
-        expected = [0]*len(observedData)
-        actual = createActual(observedData, outData)
+        weights = [1]*dims
+        bias = 2
+        expected = [0]*observedLen
+        actual = createActual(createCustomRegObj(observedData, outData, weights, bias), observedData, outData)
+        assertOn1dList(expected, actual, errorMsg)
         
     def testIndividualPointGradientComputation():
         #Assume f(a,b) = a + b
-        observedData = [[1,1]]
+        observedData, dims, observedLen = changeObservedData([[1,1]])
         outData = [2]
-        reg = ModifiedGradientDescent(observedData, outData)
         errorMsg = "Individual Gradient Computation Failure"
         
         #Make weights all 1 and bias 2
-        reg.paramsForInput = [1]*len(observedData[0])
-        reg.paramForConstant = 1
-        actualWeight, actualBias = reg.lossGradient()
+        weights = [1]*dims
+        bias = 2
+        actualWeight, actualBias = createCustomRegObj(observedData, outData, weights, bias).lossGradient()
         expectedWeight = [1,1]
         expectedBias = 1
         assert actualBias == expectedBias, errorMsg
         assertOn1dList(expectedWeight, actualWeight, errorMsg)
         
         #Make weights all 1 and bias -1
-        reg.paramsForInput = [1]*len(observedData[0])
-        reg.paramForConstant = -1
-        actualWeight, actualBias = reg.lossGradient()
+        weights = [1]*dims
+        bias = -1
+        actualWeight, actualBias = createCustomRegObj(observedData, outData, weights, bias).lossGradient()
         expectedWeight = [-1,-1]
         expectedBias = -1
         assert actualBias == expectedBias, errorMsg
         assertOn1dList(expectedWeight, actualWeight, errorMsg)
         
         #Make weights all 1 and bias 0
-        reg.paramsForInput = [1]*len(observedData[0])
-        reg.paramForConstant = 0
-        actualWeight, actualBias = reg.lossGradient()
+        weights = [1]*dims
+        bias = 0
+        actualWeight, actualBias = createCustomRegObj(observedData, outData, weights, bias).lossGradient()
         expectedWeight = [0,0]
         expectedBias = 0
         assert actualBias == expectedBias, errorMsg
         assertOn1dList(expectedWeight, actualWeight, errorMsg)
         
         #Make weights 1,2,... and bias 0
-        reg.paramsForInput = [x+1 for x in range(len(observedData[0]))]
-        reg.paramForConstant = 0
-        actualWeight, actualBias = reg.lossGradient()
+        weights = [x+1 for x in range(dims)]
+        bias = 0
+        actualWeight, actualBias = createCustomRegObj(observedData, outData, weights, bias).lossGradient()
         expectedWeight = [1,1]
         expectedBias = 1
         assert actualBias == expectedBias, errorMsg
         assertOn1dList(expectedWeight, actualWeight, errorMsg)
         
         #Make weights 1,2,... and change the data to another point
-        observedData = [[3,-1,-7]]
+        observedData, dims, observedLen = changeObservedData([[3,-1,-7]])
         outData = [-5]
-        reg = ModifiedGradientDescent(observedData, outData)
-        reg.paramsForInput = [x+1 for x in range(len(observedData[0]))]
-        reg.paramForConstant = 0
-        actualWeight, actualBias = reg.lossGradient()
+        weights = [x+1 for x in range(dims)]
+        bias = 0
+        actualWeight, actualBias = createCustomRegObj(observedData, outData, weights, bias).lossGradient()
         expectedWeight = [-3,1,7]
         expectedBias = -1
         assert actualBias == expectedBias, errorMsg
         assertOn1dList(expectedWeight, actualWeight, errorMsg)
         
         #Change data again
-        observedData = [[3]]
+        observedData, dims, observedLen = changeObservedData([[3]])
         outData = [3]
-        reg = ModifiedGradientDescent(observedData, outData)
-        reg.paramsForInput = [x+1 for x in range(len(observedData[0]))]
-        reg.paramForConstant = 0
-        actualWeight, actualBias = reg.lossGradient()
+        weights = [x+1 for x in range(dims)]
+        bias = 0
+        actualWeight, actualBias = createCustomRegObj(observedData, outData, weights, bias).lossGradient()
         expectedWeight = [0]
         expectedBias = 0
         assert actualBias == expectedBias, errorMsg
         assertOn1dList(expectedWeight, actualWeight, errorMsg)
         
     def testGradientComputation():
-        #f(a,b) = a + b
-        observedData = [[1,2],[2,3]]
-        outData = [3,5]
         errorMsg = "Cumulative Gradient Computation Failure"
-        reg = ModifiedGradientDescent(observedData, outData)
-        reg.paramsForInput = [1]*len(observedData[0])
-        reg.paramForConstant = 1
-        actualWeight, actualBias = reg.lossGradient()
+        
+        #f(a,b) = a + b
+        observedData, dims, observedLen = changeObservedData([[1,2],[2,3]])
+        outData = [3,5]
+        weights = [1]*dims
+        bias = 1
+        actualWeight, actualBias = createCustomRegObj(observedData, outData, weights, bias).lossGradient()
         expectedWeight = [3,5]
         expectedBias = 2
         assert actualBias == expectedBias, errorMsg
         assertOn1dList(expectedWeight, actualWeight, errorMsg)
         
         #Under test
-        reg.paramForConstant = -1
-        actualWeight, actualBias = reg.lossGradient()
+        bias = -1
+        actualWeight, actualBias = createCustomRegObj(observedData, outData, weights, bias).lossGradient()
         expectedWeight = [-3,-5]
         expectedBias = -2
         assert actualBias == expectedBias, errorMsg
         assertOn1dList(expectedWeight, actualWeight, errorMsg)
         
         #Good test
-        reg.paramForConstant = 0
-        actualWeight, actualBias = reg.lossGradient()
+        bias = 0
+        actualWeight, actualBias = createCustomRegObj(observedData, outData, weights, bias).lossGradient()
         expectedWeight = [0,0]
         expectedBias = 0
         assert actualBias == expectedBias, errorMsg
         assertOn1dList(expectedWeight, actualWeight, errorMsg)
         
         #Adjust reg weights
-        observedData = [[1,2],[3,1]]
+        observedData, dims, observedLen = changeObservedData([[1,2],[3,1]])
         outData = [3,4]
-        reg = ModifiedGradientDescent(observedData, outData)
-        reg.paramsForInput = [-5,5]
-        reg.paramForConstant = 0
-        actualWeight, actualBias = reg.lossGradient()
+        weights = [-5,5]
+        bias = 0
+        actualWeight, actualBias = createCustomRegObj(observedData, outData, weights, bias).lossGradient()
         expectedWeight = [-2,1]
         expectedBias = 0
         assert actualBias == expectedBias, errorMsg
         assertOn1dList(expectedWeight, actualWeight, errorMsg)
         
             
-    print("Unit tests complete")
     testLossComputation()
     testIndividualPointGradientComputation()
     testGradientComputation()
+    print("Unit tests complete")
     
     
       
