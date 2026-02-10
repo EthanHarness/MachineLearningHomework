@@ -1,7 +1,4 @@
-import random
 import copy
-
-        
 
 class PerceptronAlgorithm:
     

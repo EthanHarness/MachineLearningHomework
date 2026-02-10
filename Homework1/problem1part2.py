@@ -20,8 +20,8 @@ class ModifiedGradientDescent:
         self.learningRate = learningRate
         self.iterationCount = iterationCount
         
-        self.paramsForInput = [random.uniform(-.01, -.01) for _ in range(self.inputDimensionSize)] 
-        self.paramForConstant = self.computeMedianOfLabels()
+        self.paramsForInput = [0]*self.inputDimensionSize 
+        self.paramForConstant = 0
          
         self.computeLoss = lambda inData,outData: sum([x*y for x,y in zip(self.paramsForInput, inData)]) + self.paramForConstant - outData
         self.computeOutput = lambda inData: sum([x*y for x,y in zip(self.paramsForInput, inData)]) + self.paramForConstant
@@ -54,38 +54,31 @@ class ModifiedGradientDescent:
             
             if evaluatePerIteration: self.modelEvaluation(self.getAvgDifference(), a)
             
-    def performGradientDescentToConvergence(self, cvgThreashold=5, iterationCutoff=10000, evaluatePerIteration=False, dynamicLRAjustment=True):
-        avgDifference = self.getAvgDifference()
+    def performGradientDescentToConvergence(self, cvgThreashold=1, iterationCutoff=10000, dynamicLRAjustment=True, evaluatePerIteration=False):
+        totalLoss = self.getTotalLoss()
         iteration = 0
-        while(avgDifference > cvgThreashold and iteration < iterationCutoff):
+        while(totalLoss > cvgThreashold and iteration < iterationCutoff):
             paramLoss,biasLoss = self.lossGradient()
             alpha = self.learningRate if not dynamicLRAjustment else (1/(1+iteration))
             self.paramsForInput = [(x - (alpha*y)) for x,y in zip(self.paramsForInput, paramLoss)]
             self.paramForConstant = self.paramForConstant - (alpha*biasLoss)
             iteration += 1
-            avgDifference = self.getAvgDifference()
+            totalLoss = self.getTotalLoss()
             
-            if evaluatePerIteration: self.modelEvaluation(avgDifference, iteration)
+            if evaluatePerIteration: self.modelEvaluation(totalLoss, iteration)
     
-    def computeMedianOfLabels(self):
-        middle = len(self.dataLabels)//2
-        copyList = copy.deepcopy(self.dataLabels)
-        copyList.sort()
-        return copyList[middle]
-        
-    
-    def getAvgDifference(self):
+    def getTotalLoss(self):
         absDifference = 0
         for x,y in zip(self.trainingData, self.dataLabels):
             absDifference += abs(self.computeLoss(x,y))
         
-        return absDifference/self.dataSetSize
+        return absDifference
      
     def modelEvaluation(self, avgDiff, iterationNumber=None):
         if iterationNumber == None:
-            print(f"Average Difference for {self.dataSetSize} observations is {avgDiff}")
+            print(f"Loss for {self.dataSetSize} observations is {avgDiff}")
         else: 
-            print(f"Average Difference for {self.dataSetSize} observations is {avgDiff} for iteration {iterationNumber}")
+            print(f"Loss for {self.dataSetSize} observations is {avgDiff} for iteration {iterationNumber}")
     
     def getParams(self):
         return self.paramsForInput + [self.paramForConstant]
@@ -263,9 +256,12 @@ def runUnitTests():
 
 #This function adheres to the input output information as specified in the homework
 #Takes in observation input data matrix and observation output vector and runs gradient descent according to the loss function in problem 2
-#This performs gradient descent to convergence which is defined as the average loss of the model is less then 5
+#This performs subgradient descent to convergence which terminates when the total loss is less than 1
 #If the model does not reach this after 10k iterations, it will terminate early. 
 #You can modify this behavior by passing in arguments into the function
+#This also runs using a dynamic learning rate that adjusts after each iteration based on 1/1+t
+#If you want to fix the LR, you can pass in a learning rate into the constructor then set the dynamicLRAjustment flag to false in the performGradientDescentToConvergence function 
+#You can also call startModifiedGradDescent to perform standard gradient descent for a fixed number of iterations determined by the constructor parameter.
 def homeworkSolutionFunction(observationInputMatrix, observationOutputVector):
     descent = ModifiedGradientDescent(observationInputMatrix, observationOutputVector)
     descent.performGradientDescentToConvergence()
@@ -279,13 +275,13 @@ def testHelper():
     def functionToLearn(inList):
         return sum([5*x + 127 for x in inList])
 
-    LEARN_FUNCTION_INPUTS_CONSTANT = 3
-    OBSERVATION_RANGE_CONSTANT = 10000
-    NUMBER_OF_OBSERVATIONS = 100
+    LEARN_FUNCTION_INPUTS_CONSTANT = 2
+    OBSERVATION_RANGE_CONSTANT = 1000
+    NUMBER_OF_OBSERVATIONS = 1000
     NOISE_CONSTANT = 0
     learningRate = .5
     epochs = 2000
-    cvgThreashold = 5
+    cvgThreashold = 1
     maxIterations = 1000000
 
 
@@ -295,16 +291,15 @@ def testHelper():
     outputData = [x[2] for x in data]
     
     reg = ModifiedGradientDescent(observationData, outputData, learningRate, epochs)
-    initError = sum([abs(reg.computeOutput(observationData[x])) for x in range(NUMBER_OF_OBSERVATIONS)])
+    initError = reg.getTotalLoss()
     print(f"Initial Error {initError}")
     
     reg.performGradientDescentToConvergence(cvgThreashold, maxIterations, True, True)
     
-    finalError = sum([abs(reg.computeOutput(observationData[x])) for x in range(NUMBER_OF_OBSERVATIONS)])
+    finalError = reg.getTotalLoss()
     print(f"Final Error {finalError}")
-    print(f"Error Decreased By: {finalError - initError}\n\n")
-    for x in range(NUMBER_OF_OBSERVATIONS):
-        print(functionToLearn(observationData[x]), reg.computeOutput(observationData[x]))
+    print(f"Error Decreased By: {initError - finalError}\n\n")
+    print(reg.paramsForInput, reg.paramForConstant)
 
 
 def main():
