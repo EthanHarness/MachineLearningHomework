@@ -6,6 +6,7 @@
 #Inputs initialized based on a uniform distribution using the min and max of the observed values as the function ranges
 
 import random
+import copy
 
 class ModifiedGradientDescent:
     
@@ -68,9 +69,9 @@ class ModifiedGradientDescent:
     
     def computeMedianOfLabels(self):
         middle = len(self.dataLabels)//2
-        copy = self.dataLabels.copy()
-        copy.sort()
-        return copy[middle]
+        copyList = copy.deepcopy(self.dataLabels)
+        copyList.sort()
+        return copyList[middle]
         
     
     def getAvgDifference(self):
@@ -234,14 +235,14 @@ def runUnitTests():
         observedData, outData, dims, _ = changeObservedData([[1,1]], [2])
         weights, bias = changeWeightsBias([1]*dims, 2)
         alpha, iterations = changeRegParams(.5, 1)
-        regObject = createCustomRegObj(observedData, outData, weights.copy(), bias, alpha)
+        regObject = createCustomRegObj(observedData, outData, copy.deepcopy(weights), bias, alpha)
         expectedWeights, expectedBias = updateParams(regObject, weights, bias, alpha, iterations)
         actualWeights, actualBias = getActuals(regObject)
         assertWeightsBias(expectedWeights, actualWeights, expectedBias, actualBias, errorMsg)
         
         #1 iteration and alpha=.75
         alpha, iterations = changeRegParams(.75, iterations)
-        regObject = createCustomRegObj(observedData, outData, weights.copy(), bias, alpha)
+        regObject = createCustomRegObj(observedData, outData, copy.deepcopy(weights), bias, alpha)
         expectedWeights, expectedBias = updateParams(regObject, weights, bias, alpha, iterations)
         actualWeights, actualBias = getActuals(regObject)
         assertWeightsBias(expectedWeights, actualWeights, expectedBias, actualBias, errorMsg)
