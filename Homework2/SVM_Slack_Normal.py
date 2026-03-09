@@ -63,7 +63,7 @@ class SVM_Slack_Normal:
 
         return columnVectors 
     
-    def solveWithHyperParam(self, hyperParam: float) -> (dict[str, Any] | Any):
+    def solveWithHyperParam(self, hyperParam: float) -> dict[str, Any]:
         pMat = matrix(self.constructPMatrix())
         qMat = matrix(self.constructQMatrix(hyperParam))
         hMat = matrix(self.constructHMatrix())

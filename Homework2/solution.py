@@ -137,4 +137,4 @@ def runTests(excludeList: List[int]|None=None, filePath: str|None=None, displayO
     if displayOutput: print(resultString)
             
 if __name__ == "__main__":
-    runTests([0,2,3])
+    runTests()
