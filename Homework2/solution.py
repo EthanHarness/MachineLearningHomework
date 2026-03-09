@@ -8,11 +8,11 @@ from SVM_Slack_Max import SVM_Slack_Part2
 hyperList: List[float] = [0.01,0.1,1.0,10.0,100.0,1000.0,10000.0,100000.0]
 sigmaList: List[float] = [.001,.01,.1,1,10,100]
 
-def computeAccuracy(solution: (dict[str, Any] | Any), data, label):
-    wVector = solution['x'][0:len(data[0])]
-    bias = solution['x'][len(data[0])]
+def computeAccuracy(solution: (dict[str, Any] | Any), data: List[List[float]], label: List[int]) -> float:
+    wVector: List[float] = solution['x'][0:len(data[0])]
+    bias: float = solution['x'][len(data[0])]
     
-    classes = [
+    classes: List[float] = [
         y * (sum([xi * wi for xi, wi in zip(x, wVector)]) + bias) 
         for x, y in zip(data, label)
     ]
@@ -62,7 +62,7 @@ def testGaussian(trainData: List[List[float]], trainLabel: List[int], validation
         trainData, trainLabel, validationData, validationLabel, testData, testLabel, hyperList, sigmaList
     )
 
-    bestHypersForSigma = SVM_Slack_GaussianKernel.findBestCForASigma(validAc)
+    bestHypersForSigma: dict[float, float] = SVM_Slack_GaussianKernel.findBestCForASigma(validAc)
     newModelAc = SVM_Slack_GaussianKernel.combinedTrainValidModel(
         trainData, trainLabel, validationData, validationLabel, testData, testLabel, sigmaList, bestHypersForSigma
     )
@@ -98,8 +98,8 @@ def testSlackMax(trainData: List[List[float]], trainLabel: List[int], validation
 
 def formatGaussString(testAc, validAc, bestHyper, newModelAc) -> str:
     resString: str = "Gaussian Kernel SVM Results\n"
-    resString += f"Test Set Accuracy (\"{{Sigma -> {{C -> Model Accuracy %}}}}\"): {testAc}\n" 
-    resString += f"Validation Set Accuracy (\"{{Sigma -> {{C -> Model Accuracy %}}}}\"): {validAc}\n"
+    resString += f"Test Set Accuracy: (\"{{Sigma -> {{C -> Model Accuracy %}}}}\"): {testAc}\n" 
+    resString += f"Validation Set Accuracy: (\"{{Sigma -> {{C -> Model Accuracy %}}}}\"): {validAc}\n"
     resString += f"Best Hyperparameter Per Sigma on Validation Set: {bestHyper}\n"
     resString += f"Combined Model Hyperparameter Per Sigma: {bestHyper}\n"
     resString += f"Combined Model Accuracy Per Sigma: {newModelAc}\n\n"
@@ -137,4 +137,4 @@ def runTests(excludeList: List[int]|None=None, filePath: str|None=None, displayO
     if displayOutput: print(resultString)
             
 if __name__ == "__main__":
-    runTests([1,2,3])
+    runTests([0,2,3])
