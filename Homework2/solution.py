@@ -3,10 +3,8 @@ from SVM_Slack_GaussianKernel import SVM_Slack_GaussianKernel
 from SVM_Slack_Squared import SVM_Slack_Part1
 from SVM_Slack_Max import SVM_Slack_Part2
 
-# hyperList = [0.01,0.1,1.0,10.0,100.0,1000.0,10000.0,100000.0]
-# sigmaList = [.001,.01,.1,1,10,100]
-hyperList = [0.01,0.1,1.0,]
-sigmaList = [.001,.01,.1]
+hyperList = [0.01,0.1,1.0,10.0,100.0,1000.0,10000.0,100000.0]
+sigmaList = [.001,.01,.1,1,10,100]
 
 def computeAccuracy(solution, data, label):
     wVector = solution['x'][0:len(data[0])]
@@ -89,12 +87,21 @@ def testSlackMax(trainData, trainLabel, validationData, validationLabel, testDat
 
 
 def formatTestString(title, isGauss, testAc, validAc, bestHyper, newModelAc):
-    resString = title
-    resString += f"\nTest Set Accuracy: {testAc}\n"
+    resString = title + "\n"
+
+    if isGauss:
+        resString += f"Test Set Accuracy (\"{{Sigma -> {{C -> Model Accuracy %}}}}\"): {testAc}\n" 
+        resString += f"Validation Set Accuracy (\"{{Sigma -> {{C -> Model Accuracy %}}}}\"): {validAc}\n"
+        resString += f"Best Hyperparameter Per Sigma on Validation Set: {bestHyper}\n"
+        resString += f"Combined Model Hyperparameter Per Sigma: {bestHyper}\n"
+        resString += f"Combined Model Accuracy Per Sigma: {newModelAc}\n\n"
+        return resString
+
+    resString += f"Test Set Accuracy: {testAc}\n" 
     resString += f"Validation Set Accuracy: {validAc}\n"
-    resString += f"Best Hyperparameter on Validation Set: {bestHyper}\n" if not isGauss else f"Best Hyperparameter Per Sigma on Validation Set: {bestHyper}\n"
-    resString += f"Combined Model Hyperparameter: {bestHyper}\n" if not isGauss else f"Combined Model Hyperparameter Per Sigma: {bestHyper}\n"
-    resString += f"Combined Model Accuracy: {newModelAc}\n\n" if not isGauss else f"nCombined Model Accuracy Per Sigma: {newModelAc}\n\n"
+    resString += f"Best Hyperparameter on Validation Set: {bestHyper}\n" 
+    resString += f"Combined Model Hyperparameter: {bestHyper}\n"
+    resString += f"Combined Model Accuracy: {newModelAc}\n\n"
     return resString
 
 def runTests(excludeList=None, filePath=None, displayOutput=True):
