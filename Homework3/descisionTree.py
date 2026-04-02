@@ -233,5 +233,10 @@ def main():
     print(f"Training Accuracy {trAc}")
     print(f"Testing Accuracy {tsAc}")
 
+    print("\nDescision Tree")
+    print("First value is the label that node corresponds to or \'Top\' if at the root.")
+    print("The second value is either the classification or the feature its children's label corresponds to.")
+    print(attr.printAttributeTree())
+
 if __name__ == "__main__":
     main()
