@@ -159,6 +159,21 @@ class DescisionTree:
     @staticmethod
     def labelsHave1Val(labels: List[str]):
         return len(set(labels)) == 1
+    
+    @staticmethod
+    def makeInferenceOfFeature(rootAttribute: Attribute, featureList: List[str]):
+        if len(rootAttribute.childrenAttributes) == 0: 
+            return 'p' if rootAttribute.attributeToSplitOn == -1 else 'e'
+        
+        inputFeatureLabel = featureList[rootAttribute.attributeToSplitOn]
+        newRoot = None
+        for childFeatureAttribute in rootAttribute.childrenAttributes:
+            if inputFeatureLabel == childFeatureAttribute.label:
+                newRoot = childFeatureAttribute
+                break
+        
+        assert newRoot != None, "Failed to find matching label in children" #Shouldn't happen if domains are correct
+        return DescisionTree.makeInferenceOfFeature(newRoot, featureList)
 
 
 def makeAssertionOnInput(featureList: List[str]):
@@ -191,6 +206,15 @@ def getInputData(testPath: str="", trainPath: str="") -> tuple[List[tuple[str, L
 
     return (trainData, testData)
 
+def computeAccuracy(dTreeRoot, dataset, labels):
+    total = len(labels)
+    correct = 0
+    for featureList, label in zip(dataset, labels):
+        dTreeResult = DescisionTree.makeInferenceOfFeature(dTreeRoot, featureList)
+        if dTreeResult == label: correct += 1
+
+    return correct/total
+
 def splitOut(input: List[tuple[str, List[str]]]) -> tuple[List[str], List[List[str]]]:
     labels = [x[0] for x in input]
     features = [x[1] for x in input]
@@ -198,10 +222,16 @@ def splitOut(input: List[tuple[str, List[str]]]) -> tuple[List[str], List[List[s
 
 def main():
     trainData, testData = getInputData()
-    labels, features = splitOut(trainData)
+    trLabels, trFeatures = splitOut(trainData)
+    tsLabels, tsFeatures = splitOut(testData)
 
-    attr = DescisionTree.createSplits(labels, features) 
-    print(attr.printAttributeTree()) #prints the descision tree. Label is top at root. Label is feature split num if it has subchildren. 
+    attr = DescisionTree.createSplits(trLabels, trFeatures) 
+    
+    trAc = computeAccuracy(attr, trFeatures, trLabels)
+    tsAc = computeAccuracy(attr, tsFeatures, tsLabels)
+
+    print(f"Training Accuracy {trAc}")
+    print(f"Testing Accuracy {tsAc}")
 
 if __name__ == "__main__":
     main()
