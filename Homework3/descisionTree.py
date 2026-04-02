@@ -1,4 +1,6 @@
 from __future__ import annotations
+import random
+import copy
 from typing import List
 import math
 
@@ -215,18 +217,11 @@ def computeAccuracy(dTreeRoot: Attribute, dataPairs: List[tuple[str, List[str]]]
 
     return correct/total
 
-def splitOut(input: List[tuple[str, List[str]]]) -> tuple[List[str], List[List[str]]]:
-    labels = [x[0] for x in input]
-    features = [x[1] for x in input]
-    return labels, features
-
-def main():
-    trainData, testData = getInputData()
+def trainDTree(trainData: List[tuple[str, List[str]]], testData: List[tuple[str, List[str]]]) -> None:
     trLabels: List[str] = [x[0] for x in trainData]
     trFeatures: List[List[str]] = [x[1] for x in trainData]
 
     attr = DescisionTree.createSplits(trLabels, trFeatures) 
-    
     trAc = computeAccuracy(attr, trainData)
     tsAc = computeAccuracy(attr, testData)
 
@@ -237,6 +232,23 @@ def main():
     print("First value is the label that node corresponds to or \'Top\' if at the root.")
     print("The second value is either the classification or the feature its children's label corresponds to.")
     print(attr.printAttributeTree())
+
+def combineDatasetsAndRetrain(trainData: List[tuple[str, List[str]]], testData: List[tuple[str, List[str]]]) -> None:
+    lenOriginalTrain: int = len(trainData)
+    copiedCombinedData: List[tuple[str, List[str]]] = copy.deepcopy(trainData) + copy.deepcopy(testData)
+    random.shuffle(copiedCombinedData)
+
+    trainDataNew = copiedCombinedData[0:lenOriginalTrain]
+    testDataNew = copiedCombinedData[lenOriginalTrain:]
+
+    trainDTree(trainDataNew, testDataNew)
+    
+def main():
+    trainData, testData = getInputData()
+    print("Descision Tree using original dataset orderings....")
+    trainDTree(trainData, testData)
+    print("\n\n\n\nShuffled Train and Test set orders and retrained....")
+    combineDatasetsAndRetrain(trainData, testData)
 
 if __name__ == "__main__":
     main()
