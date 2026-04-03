@@ -28,21 +28,21 @@ class QuerySegment:
         return indexes
     
 
-def prettyPrintRes(res: List[List[str]]):
+def prettyPrintRes(res: List[tuple[int, List[str]]]):
     headerString = " "
     for x in range(10):
         headerString += f" {x}   "
     for x in range(10, 22):
         headerString += f"{x}   "
     print(headerString)
-    for x in res:
-        print(x)
+    for index,x in res:
+        print(x, index)
 
 #Query functions just to test things and make sure dTree is correct
 #Treats each segment as one giant "and" then after all segments execute "or" the results together 
-def queryDataUsingQuerySegments(listOfSegments: List[QuerySegment], dataset: List[tuple[str, List[str]]]) -> List[List[str]]:
+def queryDataUsingQuerySegments(listOfSegments: List[QuerySegment], dataset: List[tuple[str, List[str]]]) -> List[tuple[int, List[str]]]:
     listOfFeatures: List[List[str]] = [x[1] for x in dataset]
     setValidIndexes: set[int] = set()
     for segment in listOfSegments:
         setValidIndexes.update(segment.getIndexesOfValidFeatures(listOfFeatures))
-    return [x for index,x in enumerate(listOfFeatures) if index in setValidIndexes]
+    return [(index,x) for index,x in enumerate(listOfFeatures) if index in setValidIndexes]

@@ -85,6 +85,23 @@ def executeQueryTest(trainData: List[tuple[str, List[str]]]) -> None:
     print(len(res))
     prettyPrintRes(res)
 
+    query: List[QuerySegment] = [
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'l'),
+        ]),
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'd'),
+        ]),
+    ]
+
+    res: List[tuple[int, List[str]]] = queryDataUsingQuerySegments(query, trainData)
+    print(len(res))
+    prettyPrintRes(res)
+
 def executeReshuffleTest(trainData: List[tuple[str, List[str]]], testData: List[tuple[str, List[str]]]) -> None:
     lenOriginalTrain: int = len(trainData)
     copiedCombinedData: List[tuple[str, List[str]]] = copy.deepcopy(trainData) + copy.deepcopy(testData)
@@ -94,3 +111,22 @@ def executeReshuffleTest(trainData: List[tuple[str, List[str]]], testData: List[
     testDataNew = copiedCombinedData[lenOriginalTrain:]
 
     DescisionTree.trainDTree(trainDataNew, testDataNew)
+
+def executeNReshuffleTests(trainData: List[tuple[str, List[str]]], testData: List[tuple[str, List[str]]], reshuffles: int=100) -> None:
+    lenOriginalTrain: int = len(trainData)
+    copiedCombinedData: List[tuple[str, List[str]]] = copy.deepcopy(trainData) + copy.deepcopy(testData)
+    trCumulativeAc = 0
+    tsCumulativeAc = 0
+    for z in range(reshuffles):
+        random.shuffle(copiedCombinedData)
+        trainDataNew = copiedCombinedData[0:lenOriginalTrain]
+        testDataNew = copiedCombinedData[lenOriginalTrain:]
+        x,y = DescisionTree.trainDTree(trainDataNew, testDataNew, False)
+        trCumulativeAc += x
+        tsCumulativeAc += y
+
+        if y < 1:
+            print(f"Testing Accuracy for iteration {z+1} was {y}")
+
+    print(f"After {reshuffles} shuffles the average training accuracy was {trCumulativeAc/reshuffles} and average testing accuracy was {tsCumulativeAc/reshuffles}")
+        

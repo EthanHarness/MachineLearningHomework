@@ -1,5 +1,5 @@
 from __future__ import annotations
-from typing import List
+from typing import List, Tuple
 import math
 
 CAP_SHAPE_DOMAIN: List[str] = ['b','c','x','f','k','s']
@@ -200,18 +200,21 @@ class DescisionTree:
         return correct/total
     
     @staticmethod
-    def trainDTree(trainData: List[tuple[str, List[str]]], testData: List[tuple[str, List[str]]]) -> None:
+    def trainDTree(trainData: List[tuple[str, List[str]]], testData: List[tuple[str, List[str]]], printSummary: bool=True) -> Tuple[int, int]:
         trLabels: List[str] = [x[0] for x in trainData]
         trFeatures: List[List[str]] = [x[1] for x in trainData]
 
         attr = DescisionTree.createSplits(trLabels, trFeatures) 
         trAc = DescisionTree.computeAccuracy(attr, trainData)
         tsAc = DescisionTree.computeAccuracy(attr, testData)
+        
+        if printSummary: 
+            print(f"Training Accuracy {trAc}")
+            print(f"Testing Accuracy {tsAc}")
 
-        print(f"Training Accuracy {trAc}")
-        print(f"Testing Accuracy {tsAc}")
+            print("\nDescision Tree")
+            print("First value is the label that node corresponds to or \'Top\' if at the root.")
+            print("The second value is either the classification or the feature its children's label corresponds to.")
+            print(attr.printAttributeTree())
 
-        print("\nDescision Tree")
-        print("First value is the label that node corresponds to or \'Top\' if at the root.")
-        print("The second value is either the classification or the feature its children's label corresponds to.")
-        print(attr.printAttributeTree())
+        return trAc, tsAc

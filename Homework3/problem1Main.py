@@ -1,5 +1,6 @@
 #Code written by Ethan Harness
 #This file is the main runner for the code
+#descisionTreeUsingSKLearn.py (IGNORE THIS FILE) (NO CODE FROM MAIN OR OTHER FILES CALLS INTO THAT FILE SO IMPLEMENTATION IS UNAFFECTED BY THAT FILE)
 #descisionTree.py has main descision tree functionality
 #queryDataset.py has functions to help test accuracy of descisionTree.py and just creates a querying system to find values
 #testingFunctions.py has 2 main tests we can optionally run (Can customize to test behavior)
@@ -9,7 +10,7 @@
 from typing import List
 
 from descisionTree import Attribute, DescisionTree
-from testingFunctions import executeQueryTest, executeReshuffleTest
+from testingFunctions import executeQueryTest, executeReshuffleTest, executeNReshuffleTests
 
 #Helper to make it easier to reason about assumptions made in code
 def makeAssertionOnInput(featureList: List[str]) -> None:
@@ -56,5 +57,8 @@ def main(skipTests: List[int] = []):
     #Just a test that combines both train and test, reshuffles, then retrains and reports accuracy 
     if 1 not in skipTests: executeReshuffleTest(trainData, testData) 
 
+    #Same as 1 but runs an arbitrary number of times and prints average accuracies
+    if 2 not in skipTests: executeNReshuffleTests(trainData, testData, 1000) 
+
 if __name__ == "__main__":
-    main([0, 1])
+    main([0, 1, 2])
