@@ -1,7 +1,5 @@
 from __future__ import annotations
-import random
-import copy
-from typing import Callable, List
+from typing import List
 import math
 
 CAP_SHAPE_DOMAIN: List[str] = ['b','c','x','f','k','s']
@@ -30,31 +28,6 @@ HABITAT_DOMAIN: List[str] = ['g','l','m','p','u','w','d']
 LABEL_DOMAIN: List[str] = ['p','e']
 NUMBER_OF_FEATURES: int = 22
 LOG_BASE: int = 10
-
-class AttributeValueWrapper:
-    def __init__(self, attributeNumber: int, attributeValue: str) -> None:
-        assert attributeValue in Attribute.getDomainOfFeature(attributeNumber), "Invalid input. Attribute value not member of attribute number domain"
-        self.attrNum: int = attributeNumber
-        self.attrVal: str = attributeValue
-
-    def isFeatureValid(self, featureList: List[str]) -> bool:
-        if featureList[self.attrNum] == self.attrVal: return True
-        return False
-
-class QuerySegment: 
-    def __init__(self, attrWrapperList: List[AttributeValueWrapper]) -> None:
-        self.attrs: List[AttributeValueWrapper] = attrWrapperList
-
-    def isFeatureValid(self, feature: List[str]) -> bool:
-        for x in self.attrs:
-            if not x.isFeatureValid(feature): return False
-        return True
-    
-    def getIndexesOfValidFeatures(self, fList: List[List[str]]) -> List[int]:
-        indexes: List[int] = []
-        for index,feature in enumerate(fList):
-            if self.isFeatureValid(feature): indexes.append(index)
-        return indexes
 
 
 class Attribute:
@@ -215,177 +188,30 @@ class DescisionTree:
         
         assert newRoot != None, "Failed to find matching label in children" #Shouldn't happen if evertying is correct
         return DescisionTree.makeInferenceOfFeature(newRoot, featureList)
+    
+    @staticmethod
+    def computeAccuracy(dTreeRoot: Attribute, dataPairs: List[tuple[str, List[str]]]) -> float:
+        total: int = len(dataPairs)
+        correct: int = 0
+        for label, featureList in dataPairs:
+            dTreeResult = DescisionTree.makeInferenceOfFeature(dTreeRoot, featureList)
+            if dTreeResult == label: correct += 1
 
-#Helper to make it easier to reason about assumptions made in code
-def makeAssertionOnInput(featureList: List[str]) -> None:
-    for index, x in enumerate(featureList):
-        assert x in Attribute.getDomainOfFeature(index), f"Feature List, {featureList}, has domain issue for feature {index}"
-    return
+        return correct/total
+    
+    @staticmethod
+    def trainDTree(trainData: List[tuple[str, List[str]]], testData: List[tuple[str, List[str]]]) -> None:
+        trLabels: List[str] = [x[0] for x in trainData]
+        trFeatures: List[List[str]] = [x[1] for x in trainData]
 
-def getInputData(testPath: str="", trainPath: str="") -> tuple[List[tuple[str, List[str]]], List[tuple[str, List[str]]]]:
-    if testPath == "": testPath = "./mush_test.data"
-    if trainPath == "": trainPath = "./mush_train.data"
+        attr = DescisionTree.createSplits(trLabels, trFeatures) 
+        trAc = DescisionTree.computeAccuracy(attr, trainData)
+        tsAc = DescisionTree.computeAccuracy(attr, testData)
 
-    print(f"Loading train from: {trainPath}")
-    print(f"Loading test from: {testPath}")
+        print(f"Training Accuracy {trAc}")
+        print(f"Testing Accuracy {tsAc}")
 
-    trainData: List[tuple[str, List[str]]] = []
-    testData: List[tuple[str, List[str]]] = []
-    with open(trainPath, "r") as file:
-        for line in file:
-            line = line.strip()
-            dataArr: List[str] = line.split(",")
-            trainData.append((dataArr[0], dataArr[1:]))
-            makeAssertionOnInput(dataArr[1:])
-
-    with open(testPath, "r") as file:
-        for line in file:
-            line = line.strip()
-            dataArr: List[str] = line.split(",")
-            testData.append((dataArr[0], dataArr[1:]))
-            makeAssertionOnInput(dataArr[1:])
-
-    return (trainData, testData)
-
-def computeAccuracy(dTreeRoot: Attribute, dataPairs: List[tuple[str, List[str]]]) -> float:
-    total: int = len(dataPairs)
-    correct: int = 0
-    for label, featureList in dataPairs:
-        dTreeResult = DescisionTree.makeInferenceOfFeature(dTreeRoot, featureList)
-        if dTreeResult == label: correct += 1
-
-    return correct/total
-
-def trainDTree(trainData: List[tuple[str, List[str]]], testData: List[tuple[str, List[str]]]) -> None:
-    trLabels: List[str] = [x[0] for x in trainData]
-    trFeatures: List[List[str]] = [x[1] for x in trainData]
-
-    attr = DescisionTree.createSplits(trLabels, trFeatures) 
-    trAc = computeAccuracy(attr, trainData)
-    tsAc = computeAccuracy(attr, testData)
-
-    print(f"Training Accuracy {trAc}")
-    print(f"Testing Accuracy {tsAc}")
-
-    print("\nDescision Tree")
-    print("First value is the label that node corresponds to or \'Top\' if at the root.")
-    print("The second value is either the classification or the feature its children's label corresponds to.")
-    print(attr.printAttributeTree())
-
-def combineDatasetsAndRetrain(trainData: List[tuple[str, List[str]]], testData: List[tuple[str, List[str]]]) -> None:
-    lenOriginalTrain: int = len(trainData)
-    copiedCombinedData: List[tuple[str, List[str]]] = copy.deepcopy(trainData) + copy.deepcopy(testData)
-    random.shuffle(copiedCombinedData)
-
-    trainDataNew = copiedCombinedData[0:lenOriginalTrain]
-    testDataNew = copiedCombinedData[lenOriginalTrain:]
-
-    trainDTree(trainDataNew, testDataNew)
-
-def prettyPrintRes(res: List[List[str]]):
-    headerString = " "
-    for x in range(10):
-        headerString += f" {x}   "
-    for x in range(10, 22):
-        headerString += f"{x}   "
-    print(headerString)
-    for x in res:
-        print(x)
-
-#Query functions just to test things and make sure dTree is correct
-#Treats each segment as one giant "and" then after all segments execute "or" the results together 
-def queryDataUsingQuerySegments(listOfSegments: List[QuerySegment], dataset: List[tuple[str, List[str]]]) -> List[List[str]]:
-    listOfFeatures: List[List[str]] = [x[1] for x in dataset]
-    setValidIndexes: set[int] = set()
-    for segment in listOfSegments:
-        setValidIndexes.update(segment.getIndexesOfValidFeatures(listOfFeatures))
-    return [x for index,x in enumerate(listOfFeatures) if index in setValidIndexes]
-
-def executeQueryTest(trainData: List[tuple[str, List[str]]]) -> None:
-    #These are all the unused branches except the last one 
-    #Each segment has a list of AttributeValueWrapper's
-    #Each wrapper corresponds to a specific attribute in the dataset you want to query for 
-    #Ex) AttributeValueWrapper(4, 'n') means that only values with Odor equal to 'n' will be selected for that segment
-    query: List[QuerySegment] = [
-        QuerySegment([
-            AttributeValueWrapper(4, 'n'),
-            AttributeValueWrapper(19, 'u')
-        ]),
-        QuerySegment([
-            AttributeValueWrapper(4, 'n'),
-            AttributeValueWrapper(19, 'w'),
-            AttributeValueWrapper(21, 'm')
-        ]),
-        QuerySegment([
-            AttributeValueWrapper(4, 'n'),
-            AttributeValueWrapper(19, 'w'),
-            AttributeValueWrapper(21, 'u')
-        ]),
-        QuerySegment([
-            AttributeValueWrapper(4, 'n'),
-            AttributeValueWrapper(19, 'w'),
-            AttributeValueWrapper(21, 'l'),
-            AttributeValueWrapper(20, 'a'),
-        ]),
-        QuerySegment([
-            AttributeValueWrapper(4, 'n'),
-            AttributeValueWrapper(19, 'w'),
-            AttributeValueWrapper(21, 'l'),
-            AttributeValueWrapper(20, 'n'),
-        ]),
-        QuerySegment([
-            AttributeValueWrapper(4, 'n'),
-            AttributeValueWrapper(19, 'w'),
-            AttributeValueWrapper(21, 'l'),
-            AttributeValueWrapper(20, 's'),
-        ]),
-        QuerySegment([
-            AttributeValueWrapper(4, 'n'),
-            AttributeValueWrapper(19, 'w'),
-            AttributeValueWrapper(21, 'l'),
-            AttributeValueWrapper(20, 'y'),
-        ]),
-        QuerySegment([
-            AttributeValueWrapper(4, 'n'),
-            AttributeValueWrapper(19, 'w'),
-            AttributeValueWrapper(21, 'd'),
-            AttributeValueWrapper(20, 'a'),
-        ]),
-        QuerySegment([
-            AttributeValueWrapper(4, 'n'),
-            AttributeValueWrapper(19, 'w'),
-            AttributeValueWrapper(21, 'd'),
-            AttributeValueWrapper(20, 'c'),
-        ]),
-        QuerySegment([
-            AttributeValueWrapper(4, 'n'),
-            AttributeValueWrapper(19, 'w'),
-            AttributeValueWrapper(21, 'd'),
-            AttributeValueWrapper(20, 'n'),
-        ]),
-        QuerySegment([
-            AttributeValueWrapper(4, 'n'),
-            AttributeValueWrapper(19, 'w'),
-            AttributeValueWrapper(21, 'd'),
-            AttributeValueWrapper(20, 's'),
-        ]),
-        QuerySegment([
-            AttributeValueWrapper(4, 'n'),
-            AttributeValueWrapper(19, 'w'),
-            AttributeValueWrapper(21, 'd'),
-            AttributeValueWrapper(20, 'y'),
-        ]),
-    ]
-
-    res: List[List[str]] = queryDataUsingQuerySegments(query, trainData)
-    print(len(res))
-    prettyPrintRes(res)
-
-def main():
-    trainData, testData = getInputData()
-    print("Descision Tree using original dataset orderings....")
-    trainDTree(trainData, testData)
-    #print("\n\n\n\nShuffled Train and Test set orders and retrained....")
-
-if __name__ == "__main__":
-    main()
+        print("\nDescision Tree")
+        print("First value is the label that node corresponds to or \'Top\' if at the root.")
+        print("The second value is either the classification or the feature its children's label corresponds to.")
+        print(attr.printAttributeTree())
