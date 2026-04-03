@@ -1,7 +1,7 @@
 from __future__ import annotations
 import random
 import copy
-from typing import List
+from typing import Callable, List
 import math
 
 CAP_SHAPE_DOMAIN: List[str] = ['b','c','x','f','k','s']
@@ -31,12 +31,38 @@ LABEL_DOMAIN: List[str] = ['p','e']
 NUMBER_OF_FEATURES: int = 22
 LOG_BASE: int = 10
 
+class AttributeValueWrapper:
+    def __init__(self, attributeNumber: int, attributeValue: str) -> None:
+        assert attributeValue in Attribute.getDomainOfFeature(attributeNumber), "Invalid input. Attribute value not member of attribute number domain"
+        self.attrNum: int = attributeNumber
+        self.attrVal: str = attributeValue
+
+    def isFeatureValid(self, featureList: List[str]) -> bool:
+        if featureList[self.attrNum] == self.attrVal: return True
+        return False
+
+class QuerySegment: 
+    def __init__(self, attrWrapperList: List[AttributeValueWrapper]) -> None:
+        self.attrs: List[AttributeValueWrapper] = attrWrapperList
+
+    def isFeatureValid(self, feature: List[str]) -> bool:
+        for x in self.attrs:
+            if not x.isFeatureValid(feature): return False
+        return True
+    
+    def getIndexesOfValidFeatures(self, fList: List[List[str]]) -> List[int]:
+        indexes: List[int] = []
+        for index,feature in enumerate(fList):
+            if self.isFeatureValid(feature): indexes.append(index)
+        return indexes
+
 
 class Attribute:
     def __init__(self, featureNumber: int, label: str = "Top") -> None:
         self.attributeToSplitOn: int = featureNumber
         self.label: str = label
         self.childrenAttributes: List[Attribute] = []
+        self.isUnused = False
 
     @staticmethod
     def getDomainOfFeature(featureNumber: int) -> List[str]:
@@ -74,12 +100,16 @@ class Attribute:
 
         tabStringP: str = "\t" * numTabs
         resString: str = tabStringP + self.label + " " + printVal + "\n"
+        resString: str = f"{tabStringP}{self.label} {printVal} {"Unused" if self.isUnused else ""}\n"
         for x in self.childrenAttributes:
             resString += x.printAttributeTree(numTabs+1)
         return resString
     
     def addClassLabel(self, label: str) -> None:
         self.label = label
+
+    def markUnused(self) -> None:
+        self.isUnused = True
 
 class DescisionTree:
     @staticmethod
@@ -96,7 +126,16 @@ class DescisionTree:
             divisions[fList[splitAttr]][1].append(fList)
         
         for key in divisions.keys():
-            if len(divisions[key][0]) == 0: continue #Skips over any unused keys in domain of feature
+            #This feature is unused so just default it to being poisonous
+            #Only required since test data could have a shroom that gets to this point and we don't know how to classify it based on training
+            #As a result, better to be safer and assume its poisonous if this were actually ever to be used
+            #I don't believe there are any elements of the test data that result in this state ever triggering but in the real world it could
+            if len(divisions[key][0]) == 0: 
+                child = Attribute(-1, key)
+                child.markUnused()
+                attr.addAttributeSplitToChildren(child)
+                continue 
+
             attrChild = DescisionTree.createSplits(divisions[key][0], divisions[key][1])
             attr.addAttributeSplitToChildren(attrChild)
             attrChild.addClassLabel(key)
@@ -242,13 +281,111 @@ def combineDatasetsAndRetrain(trainData: List[tuple[str, List[str]]], testData: 
     testDataNew = copiedCombinedData[lenOriginalTrain:]
 
     trainDTree(trainDataNew, testDataNew)
-    
+
+def prettyPrintRes(res: List[List[str]]):
+    headerString = " "
+    for x in range(10):
+        headerString += f" {x}   "
+    for x in range(10, 22):
+        headerString += f"{x}   "
+    print(headerString)
+    for x in res:
+        print(x)
+
+#Query functions just to test things and make sure dTree is correct
+#Treats each segment as one giant "and" then after all segments execute "or" the results together 
+def queryDataUsingQuerySegments(listOfSegments: List[QuerySegment], dataset: List[tuple[str, List[str]]]) -> List[List[str]]:
+    listOfFeatures: List[List[str]] = [x[1] for x in dataset]
+    setValidIndexes: set[int] = set()
+    for segment in listOfSegments:
+        setValidIndexes.update(segment.getIndexesOfValidFeatures(listOfFeatures))
+    return [x for index,x in enumerate(listOfFeatures) if index in setValidIndexes]
+
+def executeQueryTest(trainData: List[tuple[str, List[str]]]) -> None:
+    #These are all the unused branches except the last one 
+    #Each segment has a list of AttributeValueWrapper's
+    #Each wrapper corresponds to a specific attribute in the dataset you want to query for 
+    #Ex) AttributeValueWrapper(4, 'n') means that only values with Odor equal to 'n' will be selected for that segment
+    query: List[QuerySegment] = [
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'u')
+        ]),
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'm')
+        ]),
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'u')
+        ]),
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'l'),
+            AttributeValueWrapper(20, 'a'),
+        ]),
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'l'),
+            AttributeValueWrapper(20, 'n'),
+        ]),
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'l'),
+            AttributeValueWrapper(20, 's'),
+        ]),
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'l'),
+            AttributeValueWrapper(20, 'y'),
+        ]),
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'd'),
+            AttributeValueWrapper(20, 'a'),
+        ]),
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'd'),
+            AttributeValueWrapper(20, 'c'),
+        ]),
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'd'),
+            AttributeValueWrapper(20, 'n'),
+        ]),
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'd'),
+            AttributeValueWrapper(20, 's'),
+        ]),
+        QuerySegment([
+            AttributeValueWrapper(4, 'n'),
+            AttributeValueWrapper(19, 'w'),
+            AttributeValueWrapper(21, 'd'),
+            AttributeValueWrapper(20, 'y'),
+        ]),
+    ]
+
+    res: List[List[str]] = queryDataUsingQuerySegments(query, trainData)
+    print(len(res))
+    prettyPrintRes(res)
+
 def main():
     trainData, testData = getInputData()
     print("Descision Tree using original dataset orderings....")
     trainDTree(trainData, testData)
-    print("\n\n\n\nShuffled Train and Test set orders and retrained....")
-    combineDatasetsAndRetrain(trainData, testData)
+    #print("\n\n\n\nShuffled Train and Test set orders and retrained....")
 
 if __name__ == "__main__":
     main()
