@@ -1,24 +1,26 @@
-from typing import Any, List
-from SVM_Slack_With_AdaBoost import SVM_Slack_With_AdaBoost
+from typing import List
+
 import matplotlib.pyplot as plt
 
+from SVM_Slack_With_AdaBoost import SVM_Slack_With_AdaBoost
+
 def getInput(trainPath: str = "./heart_train.data", testPath: str = "./heart_test.data") -> \
-        tuple[List[List[int]], List[int], List[List[int]], List[int]]:
+        tuple[List[List[float]], List[float], List[List[float]], List[float]]:
     print(f"Loading Training data from {trainPath}")
-    trainData: List[List[int]] = []
-    trainLabel: List[int] = []
+    trainData: List[List[float]] = []
+    trainLabel: List[float] = []
     with open(trainPath, "r") as file:
         for line in file:
-            valArr: List[int] = [1 if int(i) == 1 else -1 for i in "".join(line.split()).split(',')]
+            valArr: List[float] = [1.0 if int(i) == 1 else -1.0 for i in "".join(line.split()).split(',')]
             trainData.append(valArr[1:])
             trainLabel.append(valArr[0])
 
     print(f"Loading Test data from {testPath}")
-    testData: List[List[int]] = []
-    testLabel: List[int] = []
+    testData: List[List[float]] = []
+    testLabel: List[float] = []
     with open(testPath, "r") as file:
         for line in file:
-            valArr: List[int] = [1 if int(i) == 1 else -1 for i in "".join(line.split()).split(',')]
+            valArr: List[float] = [1.0 if int(i) == 1 else -1.0 for i in "".join(line.split()).split(',')]
             testData.append(valArr[1:])
             testLabel.append(valArr[0])
 
@@ -64,33 +66,34 @@ def main():
         print(f"Iteration {x} testing accuracy {tsAcc}")
         print("\n")
 
+    _, axs = plt.subplots(1,3, figsize=(15,5)) # type: ignore
+
     #Accuracy Plot
-    plt.subplot(1, 3, 1)
-    plt.plot(iterationList, trainingAccuracy, color='blue', label='Training')
-    plt.plot(iterationList, testAccuracy, color='red', label='Test')
-    plt.xlabel('Iteration')
-    plt.ylabel('Accuracy')
-    plt.title('Accuracy over AdaBoost iterations')
-    plt.legend()
+    axs[0].plot(iterationList, trainingAccuracy, color='blue', label='Training')
+    axs[0].plot(iterationList, testAccuracy, color='red', label='Test')
+    axs[0].set_xlabel('Iteration')
+    axs[0].set_ylabel('Accuracy')
+    axs[0].set_title('Accuracy over AdaBoost iterations')
+    axs[0].legend()
+
 
     #Eps Plot
-    plt.subplot(1, 3, 2)
-    plt.plot(iterationList, weightedError, color='red', label='Weighted Error')
-    plt.xlabel('Iteration')
-    plt.ylabel('Weighted Error')
-    plt.title('Weighted Error over AdaBoost iterations')
-    plt.legend()
+    axs[1].plot(iterationList, weightedError, color='red', label='Weighted Error')
+    axs[1].set_xlabel('Iteration')
+    axs[1].set_ylabel('Weighted Error')
+    axs[1].set_title('Weighted Error over AdaBoost iterations')
+    axs[1].legend()
 
     #Eps Plot
-    plt.subplot(1, 3, 3)
-    plt.plot(iterationList, alphas, color='red', label='Alphas')
-    plt.xlabel('Iteration')
-    plt.ylabel('Alpha')
-    plt.title('Alphas over AdaBoost iterations')
-    plt.legend()
+    axs[2].plot(iterationList, alphas, color='red', label='Alphas')
+    axs[2].set_xlabel('Iteration')
+    axs[2].set_ylabel('Alpha')
+    axs[2].set_title('Alphas over AdaBoost iterations')
+    axs[2].legend()
 
     # Display Plot
-    plt.show()
+    plt.tight_layout() 
+    plt.show() # type: ignore
 
 
 

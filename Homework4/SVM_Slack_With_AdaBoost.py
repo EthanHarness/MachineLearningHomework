@@ -1,15 +1,14 @@
 from __future__ import annotations
-import copy
 from typing import Any, List
-from cvxopt import matrix, solvers
+from cvxopt import matrix, solvers # type: ignore
 import math
 
-solvers.options['show_progress'] = False
+solvers.options['show_progress'] = False # type: ignore
 
 class SVM_Slack_With_AdaBoost:
-    def __init__(self, trData: List[List[float]], trLabel: List[int]) -> None:
+    def __init__(self, trData: List[List[float]], trLabel: List[float]) -> None:
         self.trData: List[List[float]] = trData
-        self.trLabel: List[int] = trLabel
+        self.trLabel: List[float] = trLabel
 
         self.trainingDataWeights: List[float] = [1/len(trData) for _ in range(len(trData))]
         
@@ -66,12 +65,12 @@ class SVM_Slack_With_AdaBoost:
         return columnVectors 
     
     def solveWithHyperParam(self, hyperParam: float) -> dict[str, Any]:
-        pMat = matrix(self.constructPMatrix())
-        qMat = matrix(self.constructQMatrix(hyperParam))
-        hMat = matrix(self.constructHMatrix())
-        gMat = matrix(self.constructGMatrix())
+        pMat = matrix(self.constructPMatrix()) # type: ignore
+        qMat = matrix(self.constructQMatrix(hyperParam)) # type: ignore
+        hMat = matrix(self.constructHMatrix()) # type: ignore
+        gMat = matrix(self.constructGMatrix()) # type: ignore
         
-        return solvers.qp(pMat, qMat, gMat, hMat)
+        return solvers.qp(pMat, qMat, gMat, hMat) # type: ignore
     
     def adjustWeights(self, epsilon: float, alpha: float, solution: dict[str, Any]) -> None:
         wVector: List[float] = solution['x'][0:len(self.trData[0])]
@@ -88,7 +87,7 @@ class SVM_Slack_With_AdaBoost:
         self.trainingDataWeights = newDataWeights
     
     @staticmethod
-    def computeWeightedError(solution: (dict[str, Any] | Any), data: List[List[float]], label: List[int], trainer: SVM_Slack_With_AdaBoost) -> float:
+    def computeWeightedError(solution: (dict[str, Any] | Any), data: List[List[float]], label: List[float], trainer: SVM_Slack_With_AdaBoost) -> float:
         wVector: List[float] = solution['x'][0:len(data[0])]
         bias: float = solution['x'][len(data[0])]
 
@@ -106,13 +105,13 @@ class SVM_Slack_With_AdaBoost:
         return .5*math.log((1-weightedError)/weightedError)
     
     @staticmethod
-    def runAdaBoostSVMAlgorithm(trainData: List[List[float]], trainLabel: List[int]) \
+    def runAdaBoostSVMAlgorithm(trainData: List[List[float]], trainLabel: List[float]) \
         -> List[tuple[float, float, List[float], float]]:
 
         hyperParameterList: List[float] = [.001, .01, .1, 1.0, 10.0, 100.0, 1000.0]
         adaBoostIterations = 10
         trainer = SVM_Slack_With_AdaBoost(trainData, trainLabel) 
-        adaBoostDataList: List[tuple[float, float, List[float], float, dict[str, Any]]] = [] #Holds 10 tuples of (eps, alpha, w, b) for each iteration
+        adaBoostDataList: List[tuple[float, float, List[float], float]] = [] #Holds 10 tuples of (eps, alpha, w, b) for each iteration
 
         for _ in range(adaBoostIterations):
             bestModel: dict[str, Any] 
@@ -124,9 +123,9 @@ class SVM_Slack_With_AdaBoost:
                     bestModel = model
                     bestError = weightedError
 
-            alpha = SVM_Slack_With_AdaBoost.computeAlpha(bestError)
-            adaBoostDataList.append((bestError, alpha, bestModel['x'][0:trainer.wLength], bestModel['x'][trainer.wLength]))
-            trainer.adjustWeights(bestError, alpha, bestModel)
+            alpha = SVM_Slack_With_AdaBoost.computeAlpha(bestError) # type: ignore
+            adaBoostDataList.append((bestError, alpha, bestModel['x'][0:trainer.wLength], bestModel['x'][trainer.wLength])) # type: ignore
+            trainer.adjustWeights(bestError, alpha, bestModel) # type: ignore
             
         return adaBoostDataList
             
