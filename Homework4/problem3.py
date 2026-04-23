@@ -43,29 +43,25 @@ def getInput(trainPath: str = "./gisette_train.data", testPath: str = "./gisette
 
     return (trData, trLabels, tsData, tsLabels, vdData, vdLabels) 
 
-def scaleData(trainingData: npt.NDArray[np.int32]) -> npt.NDArray[np.int32]:
+def scaleData(trainingData: npt.NDArray[np.int32]) -> tuple[npt.NDArray[np.float64], npt.NDArray[np.float64], npt.NDArray[np.float64]]:
     column_means: npt.NDArray[np.float64] = np.mean(trainingData, axis=0)
     col_deviations: npt.NDArray[np.float64] = np.std(trainingData, axis=0)
-    safe_deviations = np.where(col_deviations == 0, 1, col_deviations)
+    safe_deviations: npt.NDArray[np.float64] = np.where(col_deviations == 0, 1, col_deviations)
 
-    def scaleRow(row: npt.NDArray[np.float64]) -> npt.NDArray[np.float64]:
-        return np.array([((i - column_means[index])/safe_deviations[index]) for index,i in enumerate(row)], dtype=np.float64)
-    
-    res: npt.NDArray[np.float64] = np.apply_along_axis(scaleRow, axis=1, arr=trainingData)
-    return res
+    scaled = (trainingData - column_means) / safe_deviations
+    return scaled, column_means, safe_deviations
 
 
 
 def main():
-    if True: 
-        import psutil, os
-        p = psutil.Process(os.getpid())
-        p.nice(psutil.HIGH_PRIORITY_CLASS)
-
     trData, trLabel, tsData, tsLabel, vdData, vdLabel = getInput()
-    scaledTrData = scaleData(trData)
+    scaledTrData, mean, std = scaleData(trData)
+
+    scaledTsData = (tsData - mean) / std
+    scaledVdData = (vdData - mean) / std
+
     pca = PCA(scaledTrData, FEATURE_COUNT_CONSTANT)
-    pca.trainSVMs(trLabel, tsData, tsLabel, vdData, vdLabel)
+    pca.trainSVMs(trLabel, scaledTsData, tsLabel, scaledVdData, vdLabel)
 
 if __name__ == "__main__":
     main()

@@ -6,8 +6,8 @@ from SVM_Slack_GaussianKernel import SVM_Slack_GaussianKernel
 
 TOP_K_EVALUES_LIST = [.99,.95,.9,.80,.75]
 
-hyperList: List[float] = [0.01,0.1,1.0,10.0,100.0,1000.0]
-sigmaList: List[float] = [.01,.1,1,10,100]
+hyperList: List[float] = [0.01,0.1,1.0,10.0,100.0,1000.0,10000.0,100000.0]
+sigmaList: List[float] = [.001,.01,.1,1,10,100]
 
 class PCA:
     def __init__(self, trainingData: npt.NDArray[np.float64], featureCount: int) -> None:
